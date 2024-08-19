@@ -8,16 +8,12 @@ local UserInputService = cloneref(game:GetService("UserInputService"))
 local Teams = cloneref(game:GetService("Teams"))
 local TweenService = cloneref(game:GetService("TweenService"))
 local Stats = cloneref(game:GetService("Stats"))
-local RunService = cloneref(game:GetService("RunService"))
 
-if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+if game.PlaceId ~= 8206123457 and game.PlaceId ~= 8204899140 then
     --&gt; Made by Unlimited, Modified/Updated by NG/Johan Peterson
 
-    --// Services
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
     --// Variables
-    local Player = game:GetService("Players").LocalPlayer
+    local Player = Players.LocalPlayer
     local Character = Player.Character or Player.CharacterAdded:Wait()
     local HRP = Character and Character.HumanoidRootPart
     local Hooks = {}
@@ -51,8 +47,16 @@ if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
         return Hooks.Namecall(self, ...)
     end)
 
-    while not ACString and not HandshakeArgs do
+    local attempts = 0
+    local max_attempts = 100 -- Set a maximum number of attempts to avoid an infinite loop
+    while not ACString and not HandshakeArgs and attempts < max_attempts do
         task.wait()
+        attempts = attempts + 1
+    end
+
+    if attempts >= max_attempts then
+        warn("Failed to find handshake arguments, terminating script.")
+        return
     end
 
     print("Found handshake arguments.")
@@ -78,11 +82,9 @@ if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
             local Success, Error = pcall(ReplicateHandshake)
 
             if not Success or Error then
-                return {
-                    warn("Bypass timed out."),
-                    task.wait(20),
-                    game:GetService("Players").LocalPlayer:Kick("Bypass timed out.")
-                }
+                warn("Bypass timed out.")
+                task.wait(20)
+                Player:Kick("Bypass timed out.")
             end
         end
     end)
