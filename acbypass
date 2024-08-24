@@ -1,91 +1,95 @@
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+print('Initializing AC Bypass!')
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--// Services
+local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local RunService = cloneref(game:GetService("RunService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local Teams = cloneref(game:GetService("Teams"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local Stats = cloneref(game:GetService("Stats"))
+local RunService = cloneref(game:GetService("RunService"))
 
-local Handshake = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CharacterSoundEvent")
+if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+    --&gt; Made by Unlimited, Modified/Updated by NG/Johan Peterson
 
-local Hooks = {}
-local HANDSHAKEARGUMENTS = nil
-local ACSTRING = nil
-local Step = 0
-local CountIncrement = 0
-local HandshakeNumbers = {}
+    --// Services
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-Hooks.debug_info = hookfunction(debug.info, function(Level, Stuff)
-    if Level == 2 and Stuff == "s" then
-        return "LocalScript"
-    end
+    --// Variables
+    local Player = game:GetService("Players").LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Character and Character.HumanoidRootPart
+    local Hooks = {}
+    local HandshakeArgs = nil
+    local Remote = ReplicatedStorage:WaitForChild("Remotes").CharacterSoundEvent
+    local ACString = nil
     
-    return Hooks.debug_info(Level, Stuff)
-end)
+    --&gt; os.clock hook
+    local RandomNumber = math.random(1e3, 1e5)
 
-for i, v in next, getgc() do
-    if (type(v) == "function") then
-        local Script = debug.info(v, "s")
-        
-        if string.find(Script, "ReplicatedFirst.LocalScript") then
-            setfenv(v, {})
-            Step = Step + 1
-            CountIncrement = CountIncrement + 1
+    Hooks.Clock = hookfunction(os.date, function(...)
+        return Hooks.Clock(...) + RandomNumber
+    end)
+
+    --&gt; namecall hook
+    Hooks.Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Remote and (Method == "FireServer" or Method == "fireServer") and string.find(Args[1], "AC") then
+            if not HandshakeArgs then
+                if type(Args[2]) == "table" and #Args[2] == 19 then
+                    ACString = Args[1]
+                    HandshakeArgs = Args[2]
+                end
+            else
+                return coroutine.yield()
+            end
+        end
+
+        return Hooks.Namecall(self, ...)
+    end)
+
+    while not ACString and not HandshakeArgs do
+        task.wait()
+    end
+
+    print("Found handshake arguments.")
+
+    task.wait(3)
+
+    for i, v in pairs(getgc()) do
+        if type(v) == "function" then
+            if getinfo(v).source:find("PlayerModule.LocalScript") then
+                hookfunction(v, function() end)
+            end
         end
     end
-end
 
-for i, v in getgc() do
-    if typeof(v) == "function" and islclosure(v) then
-        if (#getprotos(v) == 1) and table.find(getconstants(getproto(v, 1)), 4000001) then
-            hookfunction(v, function() end)
-            Step = Step + 1
-            CountIncrement = CountIncrement + 1
-        end
+    print("Hooked all anticheat functions.")
+
+    local ReplicateHandshake = function()
+        return Remote:fireServer(ACString, HandshakeArgs, nil)
     end
-end
 
-for i, v in next, getgc(true) do
-    if type(v) == "table" then
-        if rawlen(v) == 19 and type(rawget(v, 19)) == "userdata" then
-            Hooks.__call = hookfunction(getrawmetatable(v).__call, function(self, ...)
-                local Args = {...}
-                local HandshakeValues = {
-                    [1] = {660, 759, 751, 863, 771},
-                    [2] = {760, 760, 771, 665, 898},
-                    [3] = {655, 775, 724, 633, 891}
+    task.spawn(function()
+        while task.wait(0.4) do
+            local Success, Error = pcall(ReplicateHandshake)
+
+            if not Success or Error then
+                return {
+                    warn("Bypass timed out."),
+                    task.wait(20),
+                    game:GetService("Players").LocalPlayer:Kick("Bypass timed out.")
                 }
-
-                local function tablesEqual(t1, t2)
-                    if #t1 ~= #t2 then
-                        return false
-                    end
-                    for i, v in pairs(t1) do
-                        if t2[i] ~= v then
-                            return false
-                        end
-                    end
-                    return true
-                end
-
-                local function containsTable(t, tbls)
-                    for _, v in pairs(tbls) do
-                        if tablesEqual(t, v) then
-                            return true
-                        end
-                    end
-                    return false
-                end
-
-                if containsTable(Args, HandshakeValues) then
-                else
-                    return
-                end
-                
-                return Hooks.__call(self, ...)
-            end)
+            end
         end
-    end
+    end)
+
+    print("Replicated handshake.")
 end
 
 task.wait()
-print("FF2 AC Bypass")
-task.wait()
+
+print('Done! Now Loading')
