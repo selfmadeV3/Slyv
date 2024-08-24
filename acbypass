@@ -1,38 +1,91 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
---<< Services >>--
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
---<< Variables >>--
-local Handshake = ReplicatedStorage.Remotes.CharacterSoundEvent
+local Handshake = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CharacterSoundEvent")
+
 local Hooks = {}
-local HandshakeInts = {}
+local HANDSHAKEARGUMENTS = nil
+local ACSTRING = nil
+local Step = 0
+local CountIncrement = 0
+local HandshakeNumbers = {}
+
+Hooks.debug_info = hookfunction(debug.info, function(Level, Stuff)
+    if Level == 2 and Stuff == "s" then
+        return "LocalScript"
+    end
+    
+    return Hooks.debug_info(Level, Stuff)
+end)
+
+for i, v in next, getgc() do
+    if (type(v) == "function") then
+        local Script = debug.info(v, "s")
+        
+        if string.find(Script, "ReplicatedFirst.LocalScript") then
+            setfenv(v, {})
+            Step = Step + 1
+            CountIncrement = CountIncrement + 1
+        end
+    end
+end
 
 for i, v in getgc() do
     if typeof(v) == "function" and islclosure(v) then
         if (#getprotos(v) == 1) and table.find(getconstants(getproto(v, 1)), 4000001) then
             hookfunction(v, function() end)
+            Step = Step + 1
+            CountIncrement = CountIncrement + 1
         end
     end
 end
 
-Hooks.__namecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local Method = getnamecallmethod()
-    local Args = {...}
+for i, v in next, getgc(true) do
+    if type(v) == "table" then
+        if rawlen(v) == 19 and type(rawget(v, 19)) == "userdata" then
+            Hooks.__call = hookfunction(getrawmetatable(v).__call, function(self, ...)
+                local Args = {...}
+                local HandshakeValues = {
+                    [1] = {660, 759, 751, 863, 771},
+                    [2] = {760, 760, 771, 665, 898},
+                    [3] = {655, 775, 724, 633, 891}
+                }
 
-    if not checkcaller() and (self == Handshake) and (Method == "fireServer") and (string.find(Args[1], "AC")) then
-        if (#HandshakeInts == 0) then
-            HandshakeInts = {table.unpack(Args[2], 2, 18)}
-        else
-            for i, v in HandshakeInts do
-                Args[2][i + 1] = v
-            end
+                local function tablesEqual(t1, t2)
+                    if #t1 ~= #t2 then
+                        return false
+                    end
+                    for i, v in pairs(t1) do
+                        if t2[i] ~= v then
+                            return false
+                        end
+                    end
+                    return true
+                end
+
+                local function containsTable(t, tbls)
+                    for _, v in pairs(tbls) do
+                        if tablesEqual(t, v) then
+                            return true
+                        end
+                    end
+                    return false
+                end
+
+                if containsTable(Args, HandshakeValues) then
+                else
+                    return
+                end
+                
+                return Hooks.__call(self, ...)
+            end)
         end
     end
+end
 
-    return Hooks.__namecall(self, ...)
-end)
-
-warn("")
+task.wait()
+print("FF2 AC Bypass")
+task.wait()
